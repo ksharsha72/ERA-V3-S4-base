@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>MNIST CNN Training Monitor</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        .chart-container {
+            width: 1000px;
+            height: 500px;
+            margin: 20px auto;
+        }
+
+        .metrics {
+            text-align: center;
+            font-size: 18px;
+            margin: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="metrics">
+        <h2>Current Training Metrics</h2>
+        <p>Epoch: <span id="current-epoch">0</span></p>
+        <p>Loss: <span id="current-loss">0</span></p>
+        <p>Accuracy: <span id="current-acc">0</span>%</p>
+    </div>
+    <div id="metrics-chart" class="chart-container"></div>
+
+    <script>
+        let iteration = 0;
+
+        function initCharts() {
+            var trace1 = {
+                x: [],
+                y: [],
+                type: 'scatter',
+                name: 'Training Loss',
+                line: { color: '#1f77b4' }
+            };
+
+            var trace2 = {
+                x: [],
+                y: [],
+                type: 'scatter',
+                name: 'Training Accuracy',
+                yaxis: 'y2',
+                line: { color: '#ff7f0e' }
+            };
+
+            var layout = {
+                title: 'Training Metrics Over Time',
+                xaxis: {
+                    title: 'Iterations',
+                    showgrid: true
+                },
+                yaxis: {
+                    title: 'Loss',
+                    titlefont: { color: '#1f77b4' },
+                    tickfont: { color: '#1f77b4' },
+                    showgrid: true
+                },
+                yaxis2: {
+                    title: 'Accuracy (%)',
+                    titlefont: { color: '#ff7f0e' },
+                    tickfont: { color: '#ff7f0e' },
+                    overlaying: 'y',
+                    side: 'right',
+                    range: [0, 100],
+                    showgrid: false
+                },
+                showlegend: true,
+                legend: {
+                    x: 1.1,
+                    y: 1
+                }
+            };
+
+            Plotly.newPlot('metrics-chart', [trace1, trace2], layout);
+        }
+
+        function updateCharts() {
+            fetch('/get_metrics')
+                .then(response => response.json())
+                .then(data => {
+                    // Update current metrics
+                    document.getElementById('current-epoch').textContent = data.current_epoch;
+                    document.getElementById('current-loss').textContent = data.current_loss.toFixed(4);
+                    document.getElementById('current-acc').textContent = data.current_acc.toFixed(2);
+
+                    // Create x-axis data (iterations)
+                    const xData = Array.from({ length: data.train_loss.length }, (_, i) => i);
+
+                    // Update combined chart with both x and y data
+                    Plotly.update('metrics-chart', {
+                        x: [xData, xData],
+                        y: [data.train_loss, data.train_acc]
+                    });
+                })
+                .catch(error => console.error('Error fetching metrics:', error));
+        }
+
+        // Initialize charts when page loads
+        initCharts();
+
+        // Update charts every second
+        setInterval(updateCharts, 1000);
+    </script>
+</body>
+
+</html>
